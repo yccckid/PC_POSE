@@ -1,0 +1,105 @@
+# 参考说明https://github.com/hku-mars/FAST-LIVO2/issues/144
+# extrin_calib:
+#   extrinsic_T: [0.04165, 0.02326, -0.0284]
+#   extrinsic_R: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+#   Rcl: [0,0007053,-0.9998076,-0.0196039,
+#         -0.0023628,0.0196021,-0.9998051,
+#         0.9999978,0.0007515,-0.0023485] 
+#   Pcl: [-0.0066253869, -0.0157590849,0.070738226]
+
+common:
+  img_topic: "/left_camera/image"
+  lid_topic: "/livox/lidar"
+  imu_topic: "/livox/imu"
+  img_en: 1
+  lidar_en: 1
+  ros_driver_bug_fix: false
+
+extrin_calib:
+  extrinsic_T: [0.04165, 0.02326, -0.0284]
+  extrinsic_R: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+  # # haotian-avia 1
+  # Rcl: [0.0007053,-0.9998076,-0.0196039,
+  #       -0.0023628,0.0196021,-0.9998051,
+  #       0.9999978,0.0007515,-0.0023485] 
+  # Pcl: [-0.0066253869, -0.0157590849,0.070738226]
+  # haotian-avia 2; Useful in tree
+  # Rcl: [-0.000585895,-0.999876,-0.0157254,
+  #       -0.00359985,0.0157274,-0.99987,
+  #       0.999993,-0.000529209,-0.00360862] 
+  # Pcl: [-0.00128821, 0.0847843,0.0199085] 
+  # # haoTian-avia 3; Useful in fruit/ustc
+  Rcl: [0.00517, -0.99992, -0.01183, 
+       -0.00008, 0.01183, -0.99993,
+       0.99999, 0.00517, -0.00002]
+  Pcl: [-0.00161, 0.05991, 0.05166]
+
+time_offset: 
+  imu_time_offset: 0.0
+  img_time_offset: 0.0
+  exposure_time_init: 0.0
+
+preprocess:
+  point_filter_num: 1
+  filter_size_surf: 0.1
+  lidar_type: 1 # Livox Avia LiDAR
+  scan_line: 6
+  blind: 0.8 # raw livox is 0.8
+
+vio:
+  max_iterations: 5
+  outlier_threshold: 1000 # 78 100 156 #100 200 500 700 infinite
+  img_point_cov: 100 # 100 1000 
+  patch_size: 8
+  patch_pyrimid_level: 4
+  normal_en: true
+  raycast_en: false
+  inverse_composition_en: false
+  exposure_estimate_en: true
+  inv_expo_cov: 0.1
+
+imu:
+  imu_en: true
+  imu_int_frame: 30
+  acc_cov: 0.05 # 0.2
+  gyr_cov: 0.03 # 0.5
+  b_acc_cov: 0.0001 # 0.1
+  b_gyr_cov: 0.0001 # 0.1
+
+lio:
+  max_iterations: 5
+  dept_err: 0.02
+  beam_err: 0.05
+  min_eigen_value: 0.0025 # 0.005
+  voxel_size: 0.5
+  max_layer: 2
+  max_points_num: 50
+  layer_init_num: [5, 5, 5, 5, 5]
+
+local_map:  
+  map_sliding_en: false
+  half_map_size: 100
+  sliding_thresh: 8
+
+uav:
+  imu_rate_odom: false
+  gravity_align_en: false
+
+publish:
+  dense_map_en: true
+  pub_effect_point_en: false 
+  pub_plane_en: false
+  pub_scan_num: 1
+  blind_rgb_points: 0.0
+
+evo:
+  seq_name: "CBD_Building_01"
+  pose_output_en: false
+
+pcd_save:
+  pcd_save_en: false #false
+  colmap_output_en: false #false # need to set interval = -1
+  filter_size_pcd: 0.1
+  interval: 1
+  # how many LiDAR frames saved in each pcd file;
+  # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.

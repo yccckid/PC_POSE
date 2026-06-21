@@ -1,0 +1,61 @@
+# Configuration for pc_to_depth.py
+# Run with:  python3 scripts/pc_to_depth.py scripts/pc_to_depth.yaml
+
+# Input ROS bag file (required)
+bag: /home/nvidia/bag4calib/66.bag
+
+# PointCloud2 topic to convert (required)
+topic: /livox/lidar
+
+# Directory where depth PNGs are written (will be created)
+output: scripts/depth_out
+
+# Output depth image name. Depth is saved as uint16 PNG in millimeters when
+# depth_scale is 1000.0.
+depth_filename: depth.png
+
+# Optional colored depth visualization for quick viewing. Set to null to disable.
+color_filename: depth_color.png
+
+# --- Camera intrinsics ---------------------------------------------------
+# Required camera intrinsics for projecting 3D camera-frame points to pixels:
+#   u = fx * X / Z + cx
+#   v = fy * Y / Z + cy
+intrinsics:
+  fx: 1294.2997611696601
+  fy: 1293.8035067346466
+  cx: 625.69717868846817
+  cy: 499.69240629695406
+  width: 1280
+  height: 1024
+
+# --- Extrinsics: LiDAR -> Camera -----------------------------------------
+# T_cam_lidar transforms a point p_lidar into the camera optical frame:
+#     p_cam = R * p_lidar + t
+# Camera optical frame convention: x right, y down, z forward.
+# Provide ONE of the three forms below. Set `extrinsics: null` for identity.
+extrinsics:
+  # Form 1: full 4x4 (or 3x4) matrix.
+  # matrix:
+  #   - [ 1.0, 0.0, 0.0, 0.0 ]
+  #   - [ 0.0, 1.0, 0.0, 0.0 ]
+  #   - [ 0.0, 0.0, 1.0, 0.0 ]
+  #   - [ 0.0, 0.0, 0.0, 1.0 ]
+
+  # Form 2: translation [x, y, z] (meters) + 3x3 rotation matrix.
+  translation: [-0.058123, 0.026177, -0.031274]
+  rotation_matrix:
+    - [0.004712, -0.999684, -0.024712]
+    - [-0.004723, 0.024690, -0.999684]
+    - [0.999978, 0.004827, -0.004605]
+
+  # Form 3: translation + quaternion in [x, y, z, w] order (ROS convention).
+  # translation: [0.0, 0.0, 0.0]
+  # quaternion: [0.0, 0.0, 0.0, 1.0]
+
+# --- Depth encoding ------------------------------------------------------
+# Multiplier from meters to stored uint16 units (1000 -> millimeters).
+depth_scale: 1000.0
+
+# Optional far clipping distance in meters; set to null to disable.
+max_depth: null
