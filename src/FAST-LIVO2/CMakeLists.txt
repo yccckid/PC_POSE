@@ -92,6 +92,7 @@ find_package(catkin REQUIRED COMPONENTS
   vikit_ros
   cv_bridge
   image_transport
+  livox_ros_driver
 )
 
 find_package(Eigen3 REQUIRED)
@@ -104,7 +105,7 @@ set(Sophus_LIBRARIES libSophus.so)
 
 # Define the catkin package
 catkin_package(
-  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs message_runtime cv_bridge vikit_common vikit_ros image_transport
+  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs message_runtime cv_bridge vikit_common vikit_ros image_transport livox_ros_driver
   DEPENDS EIGEN3 PCL OpenCV Sophus
 )
 
@@ -127,6 +128,9 @@ add_library(laser_mapping src/LIVMapper.cpp)
 
 # Add the main executable
 add_executable(fastlivo_mapping src/main.cpp)
+add_executable(fast_livo_soft_time_sync src/soft_time_sync.cpp)
+
+add_dependencies(fast_livo_soft_time_sync ${catkin_EXPORTED_TARGETS})
 
 # Link libraries to the executable
 target_link_libraries(fastlivo_mapping
@@ -140,6 +144,10 @@ target_link_libraries(fastlivo_mapping
   ${OpenCV_LIBRARIES}
   ${Sophus_LIBRARIES}
   ${Boost_LIBRARIES}
+)
+
+target_link_libraries(fast_livo_soft_time_sync
+  ${catkin_LIBRARIES}
 )
 
 # Link mimalloc if found

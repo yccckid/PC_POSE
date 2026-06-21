@@ -1,20 +1,44 @@
 <launch>
 <!-- Launch file for Livox AVIA LiDAR -->
 
-	<arg name="rviz" default="true" />
+		<arg name="rviz" default="true" />
+		<arg name="soft_sync" default="true" />
+		<arg name="raw_lidar_topic" default="/livox/lidar" />
+		<arg name="raw_imu_topic" default="/livox/imu" />
+		<arg name="raw_image_topic" default="/hikrobot_camera/rgb" />
+		<arg name="match_wait_sec" default="0.10" />
+		<arg name="max_time_diff_sec" default="0.05" />
 
-	<rosparam command="load" file="$(find fast_livo)/config/avia.yaml" />
+		<rosparam command="load" file="$(find fast_livo)/config/avia.yaml" />
 
-	<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen">
-		<rosparam file="$(find fast_livo)/config/camera_pinhole.yaml" />
-	</node>
+		<group if="$(arg soft_sync)">
+			<node pkg="fast_livo" type="fast_livo_soft_time_sync" name="fast_livo_soft_time_sync" output="screen">
+				<param name="raw_lidar_topic" value="$(arg raw_lidar_topic)" />
+				<param name="raw_imu_topic" value="$(arg raw_imu_topic)" />
+				<param name="raw_image_topic" value="$(arg raw_image_topic)" />
+				<param name="synced_lidar_topic" value="/soft_sync/livox/lidar" />
+				<param name="synced_imu_topic" value="/soft_sync/livox/imu" />
+				<param name="synced_image_topic" value="/soft_sync/camera/image" />
+				<param name="match_wait_sec" value="$(arg match_wait_sec)" />
+				<param name="max_time_diff_sec" value="$(arg max_time_diff_sec)" />
+				<param name="buffer_duration_sec" value="1.0" />
+			</node>
+		</group>
+
+		<group unless="$(arg soft_sync)">
+			<param name="common/lid_topic" value="$(arg raw_lidar_topic)" />
+			<param name="common/imu_topic" value="$(arg raw_imu_topic)" />
+			<param name="common/img_topic" value="$(arg raw_image_topic)" />
+		</group>
+
+		<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen">
+			<rosparam file="$(find fast_livo)/config/camera_pinhole.yaml" />
+		</node>
 	
 	<group if="$(arg rviz)">
 		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_livo)/rviz_cfg/fast_livo2.rviz" />
 	</group>
 	
-	<!-- <node pkg="image_transport" type="republish" name="republish" args="compressed in:=/left_camera/image raw out:=/left_camera/image" output="screen" respawn="true"/> -->
-
-launch-prefix="gdb -ex run --args"
+	launch-prefix="gdb -ex run --args"
 launch-prefix="valgrind --leak-check=full"
 </launch> 	
