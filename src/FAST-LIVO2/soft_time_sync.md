@@ -78,3 +78,7 @@ clock epochs and gives FAST-LIVO2 a common monotonic time domain, but it cannot
 recover the true optical exposure time or remove variable USB/network latency.
 For fast motion and high-accuracy calibration, hardware triggering or PTP/PPS
 remains preferable.
+
+
+
+export LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH
