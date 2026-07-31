@@ -30,8 +30,11 @@ The node uses Ubuntu wall-clock arrival time:
    frame-start stamp is recovered from the maximum Livox `offset_time`, so
    per-point timing remains usable for undistortion.
 4. After a short wait, each LiDAR frame consumes the image with the smallest
-   host arrival-time difference. The output image is stamped at the matched
-   LiDAR frame-end time.
+   host arrival-time difference from the LiDAR scan midpoint. This avoids
+   choosing a future camera frame merely because it arrives closer to the end
+   of a Livox scan. The output image retains its own normalized arrival time;
+   the LiDAR header remains the recovered scan-start time. FAST-LIVO2 can then
+   split a scan around the actual matched image time.
 5. A LiDAR frame is dropped when no image falls within `max_time_diff_sec`.
    A matched image is removed, providing one-to-one pairing.
 
@@ -67,7 +70,9 @@ rostopic hz /soft_sync/livox/imu
 rostopic hz /soft_sync/camera/image
 ```
 
-The node prints the latest LiDAR/image arrival-time difference and drop count.
+The node prints the latest image-to-scan-midpoint difference, its signed
+offset, and the drop count. For reliable colour, the signed offset should be
+small and should not alternate sharply between frames.
 If the LiDAR and camera rates differ substantially, strict one-to-one matching
 necessarily drops messages from the faster stream.
 

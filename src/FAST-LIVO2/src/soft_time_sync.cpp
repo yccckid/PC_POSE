@@ -24,6 +24,7 @@ struct TimedLidar
 {
   livox_ros_driver::CustomMsgPtr msg;
   ros::Time arrival_time;
+  ros::Time scan_mid_time;
 };
 
 class SoftTimeSync
@@ -89,10 +90,12 @@ private:
     {
       max_offset_ns = std::max(max_offset_ns, point.offset_time);
     }
-    output->header.stamp = arrival_time - ros::Duration(static_cast<double>(max_offset_ns) * 1e-9);
+    const ros::Duration scan_duration(static_cast<double>(max_offset_ns) * 1e-9);
+    output->header.stamp = arrival_time - scan_duration;
+    const ros::Time scan_mid_time = output->header.stamp + ros::Duration(0.5 * scan_duration.toSec());
 
     std::lock_guard<std::mutex> lock(buffer_mutex_);
-    lidar_buffer_.push_back({output, arrival_time});
+    lidar_buffer_.push_back({output, arrival_time, scan_mid_time});
     trimBuffers(arrival_time);
   }
 
@@ -130,11 +133,15 @@ private:
         continue;
       }
 
+      // A Livox message is a scan, not an instantaneous measurement.  Match
+      // against its midpoint: that minimizes the maximum temporal distance to
+      // all points in the scan and avoids selecting the next camera frame just
+      // because it arrives closer to the LiDAR frame-end callback.
       auto best_image = image_buffer_.end();
       double best_difference = std::numeric_limits<double>::infinity();
       for (auto it = image_buffer_.begin(); it != image_buffer_.end(); ++it)
       {
-        const double difference = std::abs((it->arrival_time - lidar.arrival_time).toSec());
+        const double difference = std::abs((it->arrival_time - lidar.scan_mid_time).toSec());
         if (difference < best_difference)
         {
           best_difference = difference;
@@ -144,23 +151,27 @@ private:
 
       if (best_image == image_buffer_.end() || best_difference > max_time_diff_sec_)
       {
-        dropLidar("nearest image exceeds max_time_diff_sec");
+        dropLidar("nearest image exceeds max_time_diff_sec from scan midpoint");
         continue;
       }
 
-      // One LiDAR frame consumes exactly one image. Both are aligned to the
-      // LiDAR frame-end system time; the LiDAR header itself remains the
-      // recovered frame-start time for point-wise undistortion.
+      // Keep the image on its own normalized capture/arrival time.  Forcing
+      // it to the LiDAR scan end discards the within-scan offset and makes the
+      // estimator colour the whole scan using a temporally incorrect image.
+      // The LiDAR header remains the recovered frame-start time, so
+      // FAST-LIVO2 can split the scan at this image timestamp.
       sensor_msgs::Image matched_image(*best_image->msg);
-      matched_image.header.stamp = lidar.arrival_time;
+      matched_image.header.stamp = best_image->arrival_time;
 
       lidar_pub_.publish(*lidar.msg);
       image_pub_.publish(matched_image);
 
       ++matched_pairs_;
       ROS_INFO_STREAM_THROTTLE(2.0, "Soft sync matched pairs: " << matched_pairs_
-                                      << ", last arrival-time difference: "
+                                      << ", image-to-scan-midpoint difference: "
                                       << best_difference * 1000.0 << " ms"
+                                      << ", signed image offset from scan midpoint: "
+                                      << (best_image->arrival_time - lidar.scan_mid_time).toSec() * 1000.0 << " ms"
                                       << ", dropped LiDAR frames: " << dropped_lidar_frames_);
 
       image_buffer_.erase(best_image);

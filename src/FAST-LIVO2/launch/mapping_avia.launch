@@ -32,6 +32,8 @@
 		</group>
 
 		<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen">
+			<!-- System PCL requires the system libusb rather than the older MVS SDK copy. -->
+			<env name="LD_LIBRARY_PATH" value="/usr/lib/aarch64-linux-gnu:$(env LD_LIBRARY_PATH)" />
 			<rosparam file="$(find fast_livo)/config/camera_pinhole.yaml" />
 		</node>
 	

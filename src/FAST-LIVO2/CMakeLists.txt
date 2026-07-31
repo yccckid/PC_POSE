@@ -77,6 +77,9 @@ else()
 endif()
 
 # Find catkin and required dependencies
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBUSB_1 REQUIRED libusb-1.0)
+
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
@@ -144,6 +147,7 @@ target_link_libraries(fastlivo_mapping
   ${OpenCV_LIBRARIES}
   ${Sophus_LIBRARIES}
   ${Boost_LIBRARIES}
+  ${LIBUSB_1_LIBRARIES}
 )
 
 target_link_libraries(fast_livo_soft_time_sync
