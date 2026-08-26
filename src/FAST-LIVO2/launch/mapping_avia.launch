@@ -6,6 +6,8 @@
 	<rosparam command="load" file="$(find fast_livo)/config/avia.yaml" />
 
 	<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen">
+		<!-- Prefer the system libusb required by PCL over the older Hikrobot MVS copy. -->
+		<env name="LD_LIBRARY_PATH" value="/usr/lib/aarch64-linux-gnu:$(env LD_LIBRARY_PATH)" />
 		<rosparam file="$(find fast_livo)/config/camera_pinhole.yaml" />
 	</node>
 	

@@ -206,6 +206,7 @@ void LIVMapper::initializeSubscribersAndPublishers(ros::NodeHandle &nh, image_tr
   pubLaserCloudEffect = nh.advertise<sensor_msgs::PointCloud2>("/cloud_effected", 100);
   pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/Laser_map", 100);
   pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/aft_mapped_to_init", 10);
+  pubOdomAftMappedLIO = nh.advertise<nav_msgs::Odometry>("/aft_mapped_to_init_lio", 10);
   pubOdomAftMappedCam = nh.advertise<nav_msgs::Odometry>("/aft_mapped_to_init_cam", 10);
   pubOdomAftMappedLiDAR = nh.advertise<nav_msgs::Odometry>("/aft_mapped_to_init_lidar", 10);
   pubPath = nh.advertise<nav_msgs::Path>("/path", 10);
@@ -297,6 +298,12 @@ void LIVMapper::handleVIO()
   if (pcl_w_wait_pub->empty() || (pcl_w_wait_pub == nullptr)) 
   {
     std::cout << "[ VIO ] No point!!!" << std::endl;
+    // No visual measurement was available, so the propagated/LIO state is the
+    // final state for this timestamp.  Still publish it on the primary output.
+    euler_cur = RotMtoEuler(_state.rot_end);
+    geoQuat = tf::createQuaternionMsgFromRollPitchYaw(euler_cur(0), euler_cur(1), euler_cur(2));
+    publish_odometry(pubOdomAftMapped);
+    publish_odometry_cam(pubOdomAftMappedCam);
     return;
   }
     
@@ -351,6 +358,11 @@ void LIVMapper::handleVIO()
   out_msg.encoding = sensor_msgs::image_encodings::BGR8;
   out_msg.image = img_origin;
   pubOriginImage.publish(out_msg.toImageMsg());
+
+  // VIO has just updated _state.  Refresh the quaternion before publishing so
+  // aft_mapped represents the final fused pose, not the preceding LIO pose.
+  euler_cur = RotMtoEuler(_state.rot_end);
+  geoQuat = tf::createQuaternionMsgFromRollPitchYaw(euler_cur(0), euler_cur(1), euler_cur(2));
   publish_odometry(pubOdomAftMapped);
   publish_odometry_cam(pubOdomAftMappedCam);
 
@@ -477,7 +489,12 @@ void LIVMapper::handleLIO()
   laserCloudmsg.header.frame_id = "camera_init";
   pubLaserCloudFullResBody.publish(laserCloudmsg);
 
-  publish_odometry(pubOdomAftMapped);
+  // In LIVO mode this is only an intermediate state.  Publishing it as
+  // aft_mapped would collide with the VIO result at the same timestamp.
+  if (slam_mode_ == LIVO)
+    publish_odometry_lio(pubOdomAftMappedLIO);
+  else
+    publish_odometry(pubOdomAftMapped);
   publish_odometry_lidar(pubOdomAftMappedLiDAR);
 
   publish_frame_world(pubLaserCloudFullRes, vio_manager);
@@ -1389,6 +1406,27 @@ void LIVMapper::publish_odometry(const ros::Publisher &pubOdomAftMapped)
   transform.setRotation(q);
   br.sendTransform( tf::StampedTransform(transform, odomAftMapped.header.stamp, "camera_init", "aft_mapped") );
   pubOdomAftMapped.publish(odomAftMapped);
+}
+
+void LIVMapper::publish_odometry_lio(const ros::Publisher &pubOdomAftMappedLIO)
+{
+  nav_msgs::Odometry lioOdomAftMapped;
+  lioOdomAftMapped.header.frame_id = "camera_init";
+  lioOdomAftMapped.child_frame_id = "aft_mapped_lio";
+  lioOdomAftMapped.header.stamp = ros::Time().fromSec(LidarMeasures.last_lio_update_time);
+  set_posestamp(lioOdomAftMapped.pose.pose);
+
+  static tf::TransformBroadcaster br;
+  tf::Transform transform;
+  tf::Quaternion q;
+  transform.setOrigin(tf::Vector3(_state.pos_end(0), _state.pos_end(1), _state.pos_end(2)));
+  q.setW(geoQuat.w);
+  q.setX(geoQuat.x);
+  q.setY(geoQuat.y);
+  q.setZ(geoQuat.z);
+  transform.setRotation(q);
+  br.sendTransform(tf::StampedTransform(transform, lioOdomAftMapped.header.stamp, "camera_init", "aft_mapped_lio"));
+  pubOdomAftMappedLIO.publish(lioOdomAftMapped);
 }
 
 void LIVMapper::publish_odometry_cam(const ros::Publisher &pubOdomAftMapped)

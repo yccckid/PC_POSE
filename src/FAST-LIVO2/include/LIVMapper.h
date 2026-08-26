@@ -54,6 +54,7 @@ public:
   void publish_visual_sub_map(const ros::Publisher &pubSubVisualMap);
   void publish_effect_world(const ros::Publisher &pubLaserCloudEffect, const std::vector<PointToPlane> &ptpl_list);
   void publish_odometry(const ros::Publisher &pubOdomAftMapped);
+  void publish_odometry_lio(const ros::Publisher &pubOdomAftMappedLIO);
   void publish_odometry_cam(const ros::Publisher &pubOdomAftMapped);
   void publish_odometry_lidar(const ros::Publisher &pubOdomAftMapped);
   void publish_mavros(const ros::Publisher &mavros_pose_publisher);
@@ -173,6 +174,7 @@ public:
   ros::Publisher pubLaserCloudEffect;
   ros::Publisher pubLaserCloudMap;
   ros::Publisher pubOdomAftMapped;
+  ros::Publisher pubOdomAftMappedLIO;
   ros::Publisher pubOdomAftMappedCam;
   ros::Publisher pubOdomAftMappedLiDAR;
   ros::Publisher pubPath;

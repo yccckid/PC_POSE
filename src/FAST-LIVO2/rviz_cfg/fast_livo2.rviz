@@ -511,7 +511,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /hikrobot_camera/rgb
+      Image Topic: /right_camera/image
       Max Value: 1
       Median window: 5
       Min Value: 0
